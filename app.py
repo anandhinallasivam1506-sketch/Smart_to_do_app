@@ -37,36 +37,3 @@ if st.button("Add Task to List", use_container_width=True):
         st.success(f"Added: '{new_task}'")
         st.rerun()
 
-st.markdown("---")
-
-# --- BACKEND SMART SORTING LOGIC ---
-priority_order = {"🔴 High": 1, "🟡 Medium": 2, "🟢 Low": 3}
-st.session_state.todo_list.sort(key=lambda x: (x["done"], priority_order.get(x["priority"], 4)))
-
-# --- FRONTEND DISPLAY LAYER ---
-st.subheader("📋 Your Organized Tasks")
-
-if not st.session_state.todo_list:
-    st.info("Your to-do list is completely empty! Add a task above to get started.")
-else:
-    for index, item in enumerate(st.session_state.todo_list):
-        c1, c2, c3 = st.columns([1, 6, 1])
-        with c1:
-            is_done = st.checkbox("Done", value=item["done"], key=f"check_{index}", label_visibility="collapsed")
-            if is_done != item["done"]:
-                st.session_state.todo_list[index]["done"] = is_done
-                st.rerun()
-        with c2:
-            if item["done"]:
-                st.markdown(f"~~{item['task']}~~ *({item['priority']})*")
-            else:
-                st.markdown(f"**{item['task']}** — `{item['priority']}`")
-        with c3:
-            if st.button("🗑️", key=f"del_{index}"):
-                st.session_state.todo_list.pop(index)
-                st.rerun()
-
-st.write("")
-if st.button("🧹 Clear All Completed Tasks", type="secondary"):
-    st.session_state.todo_list = [t for t in st.session_state.todo_list if not t["done"]]
-    st.rerun()
