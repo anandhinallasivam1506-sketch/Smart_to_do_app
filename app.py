@@ -5,9 +5,15 @@ from datetime import datetime, time as datetime_time
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Smart Priority To-Do List", page_icon="⚡", layout="wide")
 
-# --- INITIALIZE MEMORY LAYER ---
+# --- INITIALIZE MEMORY LAYER WITH SAFETY FORMAT CHECK ---
 if "todo_list" not in st.session_state:
     st.session_state.todo_list = []
+else:
+    # Safety Check: If an old task format exists without a deadline, flush the list to prevent KeyErrors
+    for task in st.session_state.todo_list:
+        if "deadline" not in task:
+            st.session_state.todo_list = []
+            break
 
 st.title("⚡ Smart Task Engine with Deadlines")
 st.write("A bug-free, priority-sorted predictive tracking matrix built in Python.")
@@ -46,7 +52,6 @@ with col_input:
         
         submit_button = st.form_submit_button(label="🚀 Add to Roadmap", use_container_width=True)
 
-    # Process and assign a bulletproof timestamp ID to each specific item
     if submit_button and task_input.strip() != "":
         unique_id = f"{task_input.strip()[:10]}_{time.time()}"
         target_datetime = datetime.combine(datetime.today().date(), time_limit)
@@ -65,7 +70,6 @@ with col_display:
     st.subheader("📋 Your Organized Roadmap")
     
     # --- SMART SORTING ENGINE ---
-    # Sorts mathematically: Active items stay up, and order by priority level weights
     priority_weights = {"🔴 High": 1, "🟡 Medium": 2, "🟢 Low": 3}
     st.session_state.todo_list.sort(key=lambda x: (x["done"], priority_weights.get(x["priority"], 4)))
     
@@ -74,22 +78,23 @@ with col_display:
     if not st.session_state.todo_list:
         st.info("Your pipeline is currently clear.")
     else:
-        # Use list() to iterate over a stable copy so mutations don't trigger index confusion
         for task in list(st.session_state.todo_list):
             col_check, col_text, col_del = st.columns([0.5, 4, 0.5])
             
-            is_overdue = current_now > task["deadline"] and not task["done"]
-            formatted_time = task["deadline"].strftime("%I:%M %p")
+            # Safe checking fallback dictionary lookup method (.get()) to prevent runtime KeyErrors
+            task_deadline = task.get("deadline", current_now)
+            is_overdue = current_now > task_deadline and not task.get("done", False)
+            formatted_time = task_deadline.strftime("%I:%M %p")
             
             if is_overdue:
                 st.toast(f"🚨 Milestone passed: '{task['task']}' is overdue!", icon="⚠️")
             
-            # 1. State Mutation Logic bound to permanent UNIQUE IDs
+            # 1. State Mutation Logic
             with col_check:
                 is_checked = st.checkbox("", value=task["done"], key=f"chk_{task['id']}")
                 if is_checked != task["done"]:
                     task["done"] = is_checked
-                    st.rerun()  # Forces immediate clean screen sorting updates
+                    st.rerun()
             
             # 2. Text Representation Layer
             with col_text:
